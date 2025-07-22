@@ -1,22 +1,23 @@
 function handleCredentialResponse(response) {
   const data = parseJwt(response.credential);
-  if (!data || !data.email_verified) {
-    alert("Error de autenticación con Google.");
-    return;
-  }
-
-  const CORREO_AUTORIZADO = "gilmar.lagosc@gmail.com";
-  if (CORREO_AUTORIZADO && data.email !== CORREO_AUTORIZADO) {
+  if (!data || !data.email_verified || data.email !== "gilmar.lagosc@gmail.com") {
     alert("Acceso restringido solo a usuarios autorizados.");
     return;
   }
-
   document.getElementById("loginOverlay").style.display = "none";
   iniciarTemporizadorInactividad();
-  renderTable();
+  mostrarVista('inventario');
+}
 
-  const formHTML = `
-    <h2>Inventario de Modulares</h2>
+function mostrarVista(vista) {
+  const contenedor = document.getElementById("contenido");
+  if (vista === "inventario") renderInventario(contenedor);
+  if (vista === "ventas") renderVentas(contenedor);
+}
+
+function renderInventario(contenedor) {
+  const html = \`
+    <h2>Gestión de Inventario</h2>
     <form id="itemForm">
       <input type="text" id="nombre" placeholder="Nombre" required />
       <input type="number" id="cantidad" placeholder="Cantidad" required />
@@ -31,8 +32,8 @@ function handleCredentialResponse(response) {
         <input type="text" id="clienteTelefono" placeholder="Teléfono" />
       </div>
       <button type="submit">Agregar / Actualizar</button>
+      <button type="button" onclick="exportarCSV()">Exportar CSV</button>
     </form>
-    <button onclick="exportarCSV()">Exportar a CSV</button>
     <h3 id="totalRestante"></h3>
     <table id="tabla">
       <thead>
@@ -48,8 +49,8 @@ function handleCredentialResponse(response) {
       </thead>
       <tbody></tbody>
     </table>
-  `;
-  document.body.innerHTML += formHTML;
+  \`;
+  contenedor.innerHTML = html;
 
   document.getElementById("vendido").addEventListener("change", function() {
     document.getElementById("datosCliente").style.display = this.checked ? "block" : "none";
@@ -85,6 +86,19 @@ function handleCredentialResponse(response) {
     };
     reader.readAsDataURL(imagenInput.files[0]);
   };
+
+  renderTable();
+}
+
+function renderVentas(contenedor) {
+  const datos = JSON.parse(localStorage.getItem("inventario") || "[]");
+  const vendidos = datos.filter(d => d.cliente);
+  let html = "<h2>Ventas realizadas</h2><table><thead><tr><th>Producto</th><th>Cliente</th><th>Teléfono</th><th>Barrio</th></tr></thead><tbody>";
+  vendidos.forEach(v => {
+    html += \`<tr><td>\${v.nombre}</td><td>\${v.cliente.nombre}</td><td>\${v.cliente.telefono}</td><td>\${v.cliente.barrio}</td></tr>\`;
+  });
+  html += "</tbody></table>";
+  contenedor.innerHTML = html;
 }
 
 function renderTable() {
@@ -94,23 +108,21 @@ function renderTable() {
   tbody.innerHTML = "";
   let total = 0;
   datos.forEach((d, i) => {
-    const cliente = d.cliente ? `${d.cliente.nombre || ''}, ${d.cliente.direccion || ''}, ${d.cliente.barrio || ''}, ${d.cliente.telefono || ''}` : "";
+    const cliente = d.cliente ? \`\${d.cliente.nombre || ''}, \${d.cliente.direccion || ''}, \${d.cliente.barrio || ''}, \${d.cliente.telefono || ''}\` : "";
     const fila = tbody.insertRow();
-    fila.innerHTML = `
-      <td>${d.nombre}</td>
-      <td>${d.cantidad}</td>
-      <td>${d.ubicacion}</td>
-      <td>${d.precio.toLocaleString("es-CO", { style: "currency", currency: "COP" })}</td>
-      <td><img src="${d.imagen}" style="height:40px;cursor:pointer" onclick="mostrarImagen('${d.imagen}')" /></td>
-      <td>${cliente}</td>
-      <td><button onclick="eliminar(${i})">Eliminar</button></td>
-    `;
+    fila.innerHTML = \`
+      <td>\${d.nombre}</td>
+      <td>\${d.cantidad}</td>
+      <td>\${d.ubicacion}</td>
+      <td>\${d.precio.toLocaleString("es-CO", { style: "currency", currency: "COP" })}</td>
+      <td><img src="\${d.imagen}" onclick="mostrarImagen('\${d.imagen}')"></td>
+      <td>\${cliente}</td>
+      <td><button onclick="eliminar(\${i})">Eliminar</button></td>
+    \`;
     total += d.cantidad;
   });
   const totalRestante = document.getElementById("totalRestante");
-  if (totalRestante) {
-    totalRestante.textContent = `Total de inventario restante: ${total}`;
-  }
+  if (totalRestante) totalRestante.textContent = \`Total de inventario restante: \${total}\`;
 }
 
 function eliminar(i) {
@@ -122,14 +134,13 @@ function eliminar(i) {
 
 function mostrarImagen(src) {
   const ventana = window.open("", "Imagen", "width=600,height=400");
-  ventana.document.write(`<img src="${src}" style="max-width:100%">`);
+  ventana.document.write(\`<img src="\${src}" style="max-width:100%">\`);
 }
 
 function exportarCSV() {
   const datos = JSON.parse(localStorage.getItem("inventario") || "[]");
   if (!datos.length) return;
-
-  const encabezado = ["Nombre", "Cantidad", "Ubicación", "Precio (COP)", "Cliente", "Dirección", "Barrio", "Teléfono"];
+  const encabezado = ["Nombre", "Cantidad", "Ubicación", "Precio", "Cliente", "Dirección", "Barrio", "Teléfono"];
   const filas = datos.map(d => [
     d.nombre,
     d.cantidad,
@@ -140,9 +151,7 @@ function exportarCSV() {
     d.cliente?.barrio || "",
     d.cliente?.telefono || ""
   ]);
-
-  const csv = [encabezado, ...filas].map(fila => fila.join(",")).join("\n");
-
+  const csv = [encabezado, ...filas].map(f => f.join(",")).join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -153,29 +162,15 @@ function exportarCSV() {
 }
 
 function iniciarTemporizadorInactividad() {
-  let tiempo = 0;
-  const maxInactividad = 5 * 60 * 1000; // 5 minutos
-  let temporizador = setTimeout(cerrarSesion, maxInactividad);
-
-  function resetear() {
+  let temporizador = setTimeout(() => location.reload(), 5 * 60 * 1000);
+  window.addEventListener("mousemove", reset);
+  window.addEventListener("keydown", reset);
+  function reset() {
     clearTimeout(temporizador);
-    temporizador = setTimeout(cerrarSesion, maxInactividad);
-  }
-
-  window.addEventListener("mousemove", resetear);
-  window.addEventListener("keydown", resetear);
-
-  function cerrarSesion() {
-    localStorage.removeItem("inventario");
-    location.reload();
+    temporizador = setTimeout(() => location.reload(), 5 * 60 * 1000);
   }
 }
 
 function parseJwt(token) {
-  try {
-    return JSON.parse(atob(token.split(".")[1]));
-  } catch (e) {
-    return null;
-  }
+  try { return JSON.parse(atob(token.split(".")[1])); } catch { return null; }
 }
-
