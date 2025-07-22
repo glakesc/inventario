@@ -77,7 +77,11 @@
     <div class="bg-white p-4 rounded shadow" id="loginBox"></div>
   </div>
 
-  <div id="menuLateral"></div>
+  <div id="menuLateral">
+    <button onclick="mostrarVista('inventario')">Inventario</button>
+    <button onclick="mostrarVista('ventas')">Ventas</button>
+    <button onclick="mostrarVista('estadisticas')">Estadísticas</button>
+  </div>
   <div id="contenido" class="container"></div>
 
   <script>
@@ -101,6 +105,7 @@
         const overlay = document.getElementById("loginOverlay");
         overlay.style.display = "none";
         overlay.style.zIndex = "-1";
+        localStorage.setItem("usuarioAutenticado", "true");
         if (typeof inicializarAplicacion === 'function') {
           inicializarAplicacion();
         }
@@ -109,7 +114,32 @@
       }
     }
 
+    function mostrarVista(vista) {
+      const contenido = document.getElementById("contenido");
+      if (vista === 'inventario') {
+        if (typeof cargarVistaInventario === 'function') cargarVistaInventario();
+      } else if (vista === 'ventas') {
+        if (typeof cargarVistaVentas === 'function') cargarVistaVentas();
+      } else if (vista === 'estadisticas') {
+        contenido.innerHTML = `
+          <h3>Estadísticas</h3>
+          <p>Total de productos registrados: <span id="totalProductos"></span></p>
+          <p>Total vendido: <span id="totalVendido"></span></p>
+          <p>Total disponible: <span id="totalDisponible"></span></p>
+        `;
+        if (typeof actualizarEstadisticas === 'function') actualizarEstadisticas();
+      }
+    }
+
     window.onload = () => {
+      if (localStorage.getItem("usuarioAutenticado") === "true") {
+        document.getElementById("loginOverlay").style.display = "none";
+        if (typeof inicializarAplicacion === 'function') {
+          inicializarAplicacion();
+        }
+        return;
+      }
+
       google.accounts.id.initialize({
         client_id: "44635824268-o6n0gvu9smp2tlsuk23b8n17660r32gj.apps.googleusercontent.com",
         callback: handleCredentialResponse,
