@@ -1,182 +1,151 @@
+// client.js actualizado
+
+const correoAutorizado = "gilmar.lagosc@gmail.com";
+let datos = JSON.parse(localStorage.getItem("datos") || "[]");
+
 function handleCredentialResponse(response) {
   const data = parseJwt(response.credential);
-  console.log("Login recibido:", data?.email);
-  alert("Login recibido: " + data?.email);
-
-  const CORREO_AUTORIZADO = "gilmar.lagosc@gmail.com";
-  if (!data || !data.email_verified || data.email !== CORREO_AUTORIZADO) {
-    alert("Acceso restringido solo a usuarios autorizados.");
-    return;
-  }
-
+  if (data.email !== correoAutorizado) return alert("Acceso restringido solo a usuarios autorizados");
   document.getElementById("loginOverlay").style.display = "none";
-  iniciarTemporizadorInactividad();
-  mostrarVista('inventario');
+  inicializarApp();
 }
 
-function mostrarVista(vista) {
-  const contenedor = document.getElementById("contenido");
-  if (vista === "inventario") renderInventario(contenedor);
-  if (vista === "ventas") renderVentas(contenedor);
+function parseJwt(token) {
+  return JSON.parse(atob(token.split(".")[1]));
 }
 
-function renderInventario(contenedor) {
-  const html = `
-    <h2>Gestión de Inventario</h2>
-    <form id="itemForm">
-      <input type="text" id="nombre" placeholder="Nombre" required />
-      <input type="number" id="cantidad" placeholder="Cantidad" required />
-      <input type="text" id="ubicacion" placeholder="Ubicación" required />
-      <input type="number" id="precio" placeholder="Precio (COP)" required />
-      <input type="file" id="imagen" accept="image/*" required />
-      <label><input type="checkbox" id="vendido"> ¿Producto vendido?</label>
-      <div id="datosCliente" style="display:none; margin-top:10px">
-        <input type="text" id="clienteNombre" placeholder="Nombre cliente" />
-        <input type="text" id="clienteDireccion" placeholder="Dirección" />
-        <input type="text" id="clienteBarrio" placeholder="Barrio" />
-        <input type="text" id="clienteTelefono" placeholder="Teléfono" />
-      </div>
-      <button type="submit">Agregar / Actualizar</button>
-      <button type="button" onclick="exportarCSV()">Exportar CSV</button>
-    </form>
-    <h3 id="totalRestante"></h3>
-    <table id="tabla">
-      <thead>
-        <tr>
-          <th>Nombre</th>
-          <th>Cantidad</th>
-          <th>Ubicación</th>
-          <th>Precio (COP)</th>
-          <th>Imagen</th>
-          <th>Cliente</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+function inicializarApp() {
+  document.getElementById("menuLateral").innerHTML = `
+    <button onclick="mostrarSeccion('inventario')">Inventario</button>
+    <button onclick="mostrarSeccion('ventas')">Ventas</button>
+    <button onclick="mostrarSeccion('estadisticas')">Estadísticas</button>
   `;
-  contenedor.innerHTML = html;
+  mostrarSeccion("inventario");
+}
 
-  document.getElementById("vendido").addEventListener("change", function() {
-    document.getElementById("datosCliente").style.display = this.checked ? "block" : "none";
-  });
+function mostrarSeccion(seccion) {
+  const cont = document.getElementById("contenido");
+  if (seccion === "inventario") cont.innerHTML = seccionInventario();
+  else if (seccion === "ventas") cont.innerHTML = seccionVentas();
+  else if (seccion === "estadisticas") cont.innerHTML = "<h2>Estadísticas</h2><p>Próximamente...</p>";
+  if (seccion === "inventario") cargarTabla();
+}
 
-  document.getElementById("itemForm").onsubmit = function (e) {
-    e.preventDefault();
-    const nombre = document.getElementById("nombre").value;
-    const cantidad = parseInt(document.getElementById("cantidad").value);
-    const ubicacion = document.getElementById("ubicacion").value;
-    const precio = parseInt(document.getElementById("precio").value);
-    const imagenInput = document.getElementById("imagen");
-    const vendido = document.getElementById("vendido").checked;
+function seccionInventario() {
+  return `
+    <h2>Gestión de Inventario</h2>
+    <div class="row g-2">
+      <div class="col"><input id="nombre" class="form-control" placeholder="Nombre"></div>
+      <div class="col"><input id="cantidad" class="form-control" type="number" placeholder="Cantidad"></div>
+      <div class="col"><input id="ubicacion" class="form-control" placeholder="Ubicación"></div>
+      <div class="col"><input id="precio" class="form-control" type="number" placeholder="Precio (COP)"></div>
+      <div class="col"><input id="imagen" class="form-control" type="file"></div>
+    </div>
+    <button onclick="agregarActualizar()" class="btn btn-primary">Agregar / Actualizar</button>
+    <button onclick="exportarCSV()" class="btn btn-secondary">Exportar CSV</button>
+    <p class="mt-3"><strong>Total de inventario restante:</strong> <span id="totalInv"></span></p>
+    <div class="table-responsive">
+      <table class="table table-bordered align-middle">
+        <thead><tr>
+          <th>Nombre</th><th>Cantidad</th><th>Ubicación</th><th>Precio (COP)</th><th>Imagen</th><th>Cliente</th><th>Acciones</th>
+        </tr></thead>
+        <tbody id="tabla"></tbody>
+      </table>
+    </div>
+  `;
+}
 
-    const cliente = vendido ? {
-      nombre: document.getElementById("clienteNombre").value,
-      direccion: document.getElementById("clienteDireccion").value,
-      barrio: document.getElementById("clienteBarrio").value,
-      telefono: document.getElementById("clienteTelefono").value
-    } : null;
+function seccionVentas() {
+  return `
+    <h2>Registrar Venta</h2>
+    <div class="row g-2">
+      <div class="col"><input id="nombreVenta" class="form-control" placeholder="Nombre producto"></div>
+      <div class="col"><input id="cliente" class="form-control" placeholder="Cliente"></div>
+      <div class="col"><input id="cantidadVenta" class="form-control" type="number" placeholder="Cantidad"></div>
+    </div>
+    <button onclick="registrarVenta()" class="btn btn-success">Registrar Venta</button>
+  `;
+}
 
+function agregarActualizar() {
+  const nombre = v("nombre"), cantidad = +v("cantidad"), ubicacion = v("ubicacion"), precio = +v("precio"), imagenInput = document.getElementById("imagen");
+  if (!nombre || isNaN(cantidad)) return alert("Nombre y cantidad requeridos");
+  let imagen = "";
+  if (imagenInput.files[0]) {
     const reader = new FileReader();
-    reader.onload = function () {
-      const nueva = { nombre, cantidad, ubicacion, precio, imagen: reader.result, cliente };
-      const datos = JSON.parse(localStorage.getItem("inventario") || "[]");
-      const index = datos.findIndex(d => d.nombre === nombre);
-      if (index >= 0) datos[index] = nueva;
-      else datos.push(nueva);
-      localStorage.setItem("inventario", JSON.stringify(datos));
-      renderTable();
-      document.getElementById("itemForm").reset();
-      document.getElementById("datosCliente").style.display = "none";
+    reader.onload = () => {
+      imagen = reader.result;
+      guardarProducto(nombre, cantidad, ubicacion, precio, imagen);
     };
-    reader.readAsDataURL(imagenInput.files[0]);
-  };
-
-  renderTable();
+    return reader.readAsDataURL(imagenInput.files[0]);
+  }
+  guardarProducto(nombre, cantidad, ubicacion, precio, imagen);
 }
 
-function renderVentas(contenedor) {
-  const datos = JSON.parse(localStorage.getItem("inventario") || "[]");
-  const vendidos = datos.filter(d => d.cliente);
-  let html = "<h2>Ventas realizadas</h2><table><thead><tr><th>Producto</th><th>Cliente</th><th>Teléfono</th><th>Barrio</th></tr></thead><tbody>";
-  vendidos.forEach(v => {
-    html += `<tr><td>${v.nombre}</td><td>${v.cliente.nombre}</td><td>${v.cliente.telefono}</td><td>${v.cliente.barrio}</td></tr>`;
-  });
-  html += "</tbody></table>";
-  contenedor.innerHTML = html;
+function guardarProducto(nombre, cantidad, ubicacion, precio, imagen) {
+  const idx = datos.findIndex(d => d.nombre === nombre);
+  if (idx >= 0) datos[idx] = {...datos[idx], cantidad, ubicacion, precio, imagen};
+  else datos.push({nombre, cantidad, ubicacion, precio, imagen, cliente: ""});
+  localStorage.setItem("datos", JSON.stringify(datos));
+  mostrarSeccion("inventario");
 }
 
-function renderTable() {
-  const datos = JSON.parse(localStorage.getItem("inventario") || "[]");
-  const tbody = document.querySelector("#tabla tbody");
-  if (!tbody) return;
-  tbody.innerHTML = "";
+function cargarTabla() {
+  let html = "";
   let total = 0;
-  datos.forEach((d, i) => {
-    const cliente = d.cliente ? `${d.cliente.nombre || ''}, ${d.cliente.direccion || ''}, ${d.cliente.barrio || ''}, ${d.cliente.telefono || ''}` : "";
-    const fila = tbody.insertRow();
-    fila.innerHTML = `
+  for (const d of datos) {
+    html += `<tr>
       <td>${d.nombre}</td>
       <td>${d.cantidad}</td>
       <td>${d.ubicacion}</td>
-      <td>${d.precio.toLocaleString("es-CO", { style: "currency", currency: "COP" })}</td>
-      <td><img src="${d.imagen}" onclick="mostrarImagen('${d.imagen}')"></td>
-      <td>${cliente}</td>
-      <td><button onclick="eliminar(${i})">Eliminar</button></td>
-    `;
+      <td>$ ${d.precio?.toLocaleString("es-CO") || 0}</td>
+      <td>${d.imagen ? `<img src="${d.imagen}" onclick="verImagen('${d.imagen}')">` : ""}</td>
+      <td>${d.cliente || ""}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="eliminar('${d.nombre}')">Eliminar</button></td>
+    </tr>`;
     total += d.cantidad;
-  });
-  const totalRestante = document.getElementById("totalRestante");
-  if (totalRestante) totalRestante.textContent = `Total de inventario restante: ${total}`;
-}
-
-function eliminar(i) {
-  const datos = JSON.parse(localStorage.getItem("inventario") || "[]");
-  datos.splice(i, 1);
-  localStorage.setItem("inventario", JSON.stringify(datos));
-  renderTable();
-}
-
-function mostrarImagen(src) {
-  const ventana = window.open("", "Imagen", "width=600,height=400");
-  ventana.document.write(`<img src="${src}" style="max-width:100%">`);
+  }
+  qs("#tabla").innerHTML = html;
+  qs("#totalInv").textContent = total;
 }
 
 function exportarCSV() {
-  const datos = JSON.parse(localStorage.getItem("inventario") || "[]");
-  if (!datos.length) return;
-  const encabezado = ["Nombre", "Cantidad", "Ubicación", "Precio", "Cliente", "Dirección", "Barrio", "Teléfono"];
-  const filas = datos.map(d => [
-    d.nombre,
-    d.cantidad,
-    d.ubicacion,
-    d.precio,
-    d.cliente?.nombre || "",
-    d.cliente?.direccion || "",
-    d.cliente?.barrio || "",
-    d.cliente?.telefono || ""
-  ]);
-  const csv = [encabezado, ...filas].map(f => f.join(",")).join("\\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const encabezados = ["Nombre","Cantidad","Ubicacion","Precio","Cliente"];
+  const filas = datos.map(d => [d.nombre, d.cantidad, d.ubicacion, d.precio, d.cliente]);
+  const csv = [encabezados, ...filas].map(f => f.join(",")).join("\n");
+  const blob = new Blob([csv], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
   a.download = "inventario.csv";
   a.click();
-  URL.revokeObjectURL(url);
 }
 
-function iniciarTemporizadorInactividad() {
-  let temporizador = setTimeout(() => location.reload(), 5 * 60 * 1000);
-  window.addEventListener("mousemove", reset);
-  window.addEventListener("keydown", reset);
-  function reset() {
-    clearTimeout(temporizador);
-    temporizador = setTimeout(() => location.reload(), 5 * 60 * 1000);
-  }
+function registrarVenta() {
+  const nombre = v("nombreVenta"), cliente = v("cliente"), cantidad = +v("cantidadVenta");
+  const idx = datos.findIndex(d => d.nombre === nombre);
+  if (idx < 0) return alert("Producto no encontrado");
+  if (datos[idx].cantidad < cantidad) return alert("Stock insuficiente");
+  datos[idx].cantidad -= cantidad;
+  datos[idx].cliente = cliente;
+  localStorage.setItem("datos", JSON.stringify(datos));
+  alert("Venta registrada y stock actualizado");
+  mostrarSeccion("inventario");
 }
 
-function parseJwt(token) {
-  try { return JSON.parse(atob(token.split(".")[1])); } catch { return null; }
+function eliminar(nombre) {
+  if (!confirm("¿Eliminar este producto?")) return;
+  datos = datos.filter(d => d.nombre !== nombre);
+  localStorage.setItem("datos", JSON.stringify(datos));
+  cargarTabla();
 }
 
+function verImagen(src) {
+  const img = new Image();
+  img.src = src;
+  const w = window.open("");
+  w.document.write(img.outerHTML);
+}
+
+const v = id => document.getElementById(id).value.trim();
+const qs = sel => document.querySelector(sel);
