@@ -3,32 +3,45 @@
 <head>
   <meta charset="UTF-8" />
   <title>Inventario Modulares</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- SDK Google Sign-In -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="client.js" defer></script>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
-    form input { margin-right: 10px; margin-bottom: 8px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-    th { background: #eee; }
-    img { border-radius: 4px; }
-    #loginOverlay {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.85); display: flex; justify-content: center;
-      align-items: center; z-index: 1000;
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f5f5f5;
     }
-    #loginBox {
-      background: white; padding: 30px; border-radius: 10px;
-      text-align: center; box-shadow: 0 0 15px rgba(0,0,0,0.3);
+    #loginOverlay {
+      position: fixed;
+      inset: 0;
+      background: #262626;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
     }
   </style>
 </head>
 <body>
   <div id="loginOverlay">
-    <div id="loginBox">
-      <h2>Inicia sesión con Google</h2>
-      <div id="g_id_signin"></div>
+    <div id="g_id_onload"
+         data-client_id="44635824268-o6n0gvu9smp2tlsuk23b8n17660r32gj.apps.googleusercontent.com"
+         data-callback="handleCredentialResponse"
+         data-auto_prompt="false">
+    </div>
+    <div class="g_id_signin"
+         data-type="standard"
+         data-size="large"
+         data-theme="filled_black"
+         data-text="sign_in_with"
+         data-shape="pill"
+         data-logo_alignment="left">
     </div>
   </div>
+
+  <!-- Script principal -->
+  <script src="client.js" defer></script>
 </body>
 </html>
