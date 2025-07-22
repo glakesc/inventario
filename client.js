@@ -141,4 +141,41 @@ function exportarCSV() {
     d.cliente?.telefono || ""
   ]);
 
-  const csv = [encabezado, ...filas].map(f
+  const csv = [encabezado, ...filas].map(fila => fila.join(",")).join("\n");
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "inventario.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function iniciarTemporizadorInactividad() {
+  let tiempo = 0;
+  const maxInactividad = 5 * 60 * 1000; // 5 minutos
+  let temporizador = setTimeout(cerrarSesion, maxInactividad);
+
+  function resetear() {
+    clearTimeout(temporizador);
+    temporizador = setTimeout(cerrarSesion, maxInactividad);
+  }
+
+  window.addEventListener("mousemove", resetear);
+  window.addEventListener("keydown", resetear);
+
+  function cerrarSesion() {
+    localStorage.removeItem("inventario");
+    location.reload();
+  }
+}
+
+function parseJwt(token) {
+  try {
+    return JSON.parse(atob(token.split(".")[1]));
+  } catch (e) {
+    return null;
+  }
+}
+
