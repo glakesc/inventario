@@ -2,25 +2,81 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Inventario Modulares</title>
+  <title>Inventario de Modulares</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- SDK Google Sign-In -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
   <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="client.js" defer></script>
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Inter', sans-serif;
       margin: 0;
+      background: #f0f2f5;
+      color: #333;
+    }
+    #sidebar {
+      position: fixed;
+      top: 0; left: 0;
+      width: 220px;
+      height: 100vh;
+      background: #1f2937;
+      color: #fff;
       padding: 20px;
-      background: #f5f5f5;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    }
+    #sidebar h2 {
+      font-size: 20px;
+      margin-bottom: 20px;
+    }
+    #sidebar button {
+      display: block;
+      width: 100%;
+      margin: 10px 0;
+      padding: 10px;
+      background: #374151;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      text-align: left;
+    }
+    #main {
+      margin-left: 240px;
+      padding: 20px;
+    }
+    form input, form select {
+      margin: 8px;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background: #fff;
+    }
+    th, td {
+      padding: 12px;
+      border: 1px solid #ddd;
+      text-align: center;
+    }
+    th {
+      background: #e5e7eb;
+    }
+    img {
+      height: 40px;
+      cursor: pointer;
+      border-radius: 5px;
     }
     #loginOverlay {
       position: fixed;
       inset: 0;
-      background: #262626;
+      background: rgba(0,0,0,0.85);
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 9999;
+      z-index: 1000;
     }
   </style>
 </head>
@@ -41,7 +97,14 @@
     </div>
   </div>
 
-  <!-- Script principal -->
-  <script src="client.js" defer></script>
+  <div id="sidebar">
+    <h2>Menú</h2>
+    <button onclick="mostrarVista('inventario')">📦 Inventario</button>
+    <button onclick="mostrarVista('ventas')">🧾 Ventas</button>
+  </div>
+
+  <div id="main">
+    <div id="contenido"></div>
+  </div>
 </body>
 </html>
