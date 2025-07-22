@@ -58,10 +58,22 @@
     #menuLateral button:hover {
       background-color: #d0d7de;
     }
+    #loginOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.7);
+      z-index: 9999;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
   </style>
 </head>
 <body>
-  <div id="loginOverlay" class="d-flex justify-content-center align-items-center vh-100 bg-dark bg-opacity-75 position-fixed top-0 start-0 w-100 z-3">
+  <div id="loginOverlay">
     <div class="bg-white p-4 rounded shadow" id="loginBox"></div>
   </div>
 
@@ -86,7 +98,9 @@
     function handleCredentialResponse(response) {
       const data = parseJwt(response.credential);
       if (data.email === usuarioAutorizado) {
-        document.getElementById("loginOverlay").style.display = "none";
+        const overlay = document.getElementById("loginOverlay");
+        overlay.style.display = "none";
+        overlay.style.zIndex = "-1";
         if (typeof inicializarAplicacion === 'function') {
           inicializarAplicacion();
         }
