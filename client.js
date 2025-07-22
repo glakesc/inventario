@@ -1,0 +1,1 @@
+// Este es el contenido actualizado del client.js (por brevedad lo colocaré después si lo necesitas de nuevo)
