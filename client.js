@@ -1,9 +1,14 @@
 function handleCredentialResponse(response) {
   const data = parseJwt(response.credential);
-  if (!data || !data.email_verified || data.email !== "gilmar.lagosc@gmail.com") {
+  console.log("Login recibido:", data?.email);
+  alert("Login recibido: " + data?.email);
+
+  const CORREO_AUTORIZADO = "gilmar.lagosc@gmail.com";
+  if (!data || !data.email_verified || data.email !== CORREO_AUTORIZADO) {
     alert("Acceso restringido solo a usuarios autorizados.");
     return;
   }
+
   document.getElementById("loginOverlay").style.display = "none";
   iniciarTemporizadorInactividad();
   mostrarVista('inventario');
@@ -16,7 +21,7 @@ function mostrarVista(vista) {
 }
 
 function renderInventario(contenedor) {
-  const html = \`
+  const html = `
     <h2>Gestión de Inventario</h2>
     <form id="itemForm">
       <input type="text" id="nombre" placeholder="Nombre" required />
@@ -49,7 +54,7 @@ function renderInventario(contenedor) {
       </thead>
       <tbody></tbody>
     </table>
-  \`;
+  `;
   contenedor.innerHTML = html;
 
   document.getElementById("vendido").addEventListener("change", function() {
@@ -95,7 +100,7 @@ function renderVentas(contenedor) {
   const vendidos = datos.filter(d => d.cliente);
   let html = "<h2>Ventas realizadas</h2><table><thead><tr><th>Producto</th><th>Cliente</th><th>Teléfono</th><th>Barrio</th></tr></thead><tbody>";
   vendidos.forEach(v => {
-    html += \`<tr><td>\${v.nombre}</td><td>\${v.cliente.nombre}</td><td>\${v.cliente.telefono}</td><td>\${v.cliente.barrio}</td></tr>\`;
+    html += `<tr><td>${v.nombre}</td><td>${v.cliente.nombre}</td><td>${v.cliente.telefono}</td><td>${v.cliente.barrio}</td></tr>`;
   });
   html += "</tbody></table>";
   contenedor.innerHTML = html;
@@ -108,21 +113,21 @@ function renderTable() {
   tbody.innerHTML = "";
   let total = 0;
   datos.forEach((d, i) => {
-    const cliente = d.cliente ? \`\${d.cliente.nombre || ''}, \${d.cliente.direccion || ''}, \${d.cliente.barrio || ''}, \${d.cliente.telefono || ''}\` : "";
+    const cliente = d.cliente ? `${d.cliente.nombre || ''}, ${d.cliente.direccion || ''}, ${d.cliente.barrio || ''}, ${d.cliente.telefono || ''}` : "";
     const fila = tbody.insertRow();
-    fila.innerHTML = \`
-      <td>\${d.nombre}</td>
-      <td>\${d.cantidad}</td>
-      <td>\${d.ubicacion}</td>
-      <td>\${d.precio.toLocaleString("es-CO", { style: "currency", currency: "COP" })}</td>
-      <td><img src="\${d.imagen}" onclick="mostrarImagen('\${d.imagen}')"></td>
-      <td>\${cliente}</td>
-      <td><button onclick="eliminar(\${i})">Eliminar</button></td>
-    \`;
+    fila.innerHTML = `
+      <td>${d.nombre}</td>
+      <td>${d.cantidad}</td>
+      <td>${d.ubicacion}</td>
+      <td>${d.precio.toLocaleString("es-CO", { style: "currency", currency: "COP" })}</td>
+      <td><img src="${d.imagen}" onclick="mostrarImagen('${d.imagen}')"></td>
+      <td>${cliente}</td>
+      <td><button onclick="eliminar(${i})">Eliminar</button></td>
+    `;
     total += d.cantidad;
   });
   const totalRestante = document.getElementById("totalRestante");
-  if (totalRestante) totalRestante.textContent = \`Total de inventario restante: \${total}\`;
+  if (totalRestante) totalRestante.textContent = `Total de inventario restante: ${total}`;
 }
 
 function eliminar(i) {
@@ -134,7 +139,7 @@ function eliminar(i) {
 
 function mostrarImagen(src) {
   const ventana = window.open("", "Imagen", "width=600,height=400");
-  ventana.document.write(\`<img src="\${src}" style="max-width:100%">\`);
+  ventana.document.write(`<img src="${src}" style="max-width:100%">`);
 }
 
 function exportarCSV() {
@@ -151,7 +156,7 @@ function exportarCSV() {
     d.cliente?.barrio || "",
     d.cliente?.telefono || ""
   ]);
-  const csv = [encabezado, ...filas].map(f => f.join(",")).join("\n");
+  const csv = [encabezado, ...filas].map(f => f.join(",")).join("\\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -174,3 +179,4 @@ function iniciarTemporizadorInactividad() {
 function parseJwt(token) {
   try { return JSON.parse(atob(token.split(".")[1])); } catch { return null; }
 }
+
