@@ -74,6 +74,35 @@
   <div id="menuLateral"></div>
   <div id="contenido" class="container"></div>
 
+  <script>
+    const usuarioAutorizado = "gilmar.lagos@gmail.com";
+
+    window.handleCredentialResponse = (response) => {
+      const data = parseJwt(response.credential);
+      if (data.email === usuarioAutorizado) {
+        document.getElementById("loginOverlay").style.display = "none";
+        if (typeof inicializarAplicacion === 'function') {
+          inicializarAplicacion();
+        }
+      } else {
+        alert("Usuario no autorizado");
+      }
+    };
+
+    function parseJwt(token) {
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split('')
+          .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+          .join('')
+      );
+      return JSON.parse(jsonPayload);
+    }
+  </script>
+
   <script src="client.js"></script>
 </body>
 </html>
+
