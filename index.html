@@ -62,13 +62,7 @@
 </head>
 <body>
   <div id="loginOverlay" class="d-flex justify-content-center align-items-center vh-100 bg-dark bg-opacity-75 position-fixed top-0 start-0 w-100 z-3">
-    <div class="bg-white p-4 rounded shadow">
-      <div id="g_id_onload"
-           data-client_id="44635824268-o6n0gvu9smp2tlsuk23b8n17660r32gj.apps.googleusercontent.com"
-           data-callback="handleCredentialResponse">
-      </div>
-      <div class="g_id_signin" data-type="standard"></div>
-    </div>
+    <div class="bg-white p-4 rounded shadow" id="loginBox"></div>
   </div>
 
   <div id="menuLateral"></div>
@@ -76,18 +70,6 @@
 
   <script>
     const usuarioAutorizado = "gilmar.lagos@gmail.com";
-
-    window.handleCredentialResponse = (response) => {
-      const data = parseJwt(response.credential);
-      if (data.email === usuarioAutorizado) {
-        document.getElementById("loginOverlay").style.display = "none";
-        if (typeof inicializarAplicacion === 'function') {
-          inicializarAplicacion();
-        }
-      } else {
-        alert("Usuario no autorizado");
-      }
-    };
 
     function parseJwt(token) {
       const base64Url = token.split('.')[1];
@@ -100,9 +82,34 @@
       );
       return JSON.parse(jsonPayload);
     }
+
+    function handleCredentialResponse(response) {
+      const data = parseJwt(response.credential);
+      if (data.email === usuarioAutorizado) {
+        document.getElementById("loginOverlay").style.display = "none";
+        if (typeof inicializarAplicacion === 'function') {
+          inicializarAplicacion();
+        }
+      } else {
+        alert("Usuario no autorizado");
+      }
+    }
+
+    window.onload = () => {
+      google.accounts.id.initialize({
+        client_id: "44635824268-o6n0gvu9smp2tlsuk23b8n17660r32gj.apps.googleusercontent.com",
+        callback: handleCredentialResponse,
+      });
+
+      google.accounts.id.renderButton(
+        document.getElementById("loginBox"),
+        { theme: "outline", size: "large" }
+      );
+
+      google.accounts.id.prompt();
+    };
   </script>
 
   <script src="client.js"></script>
 </body>
 </html>
-
