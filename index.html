@@ -1,88 +1,22 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
   <title>Inventario Modulares</title>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-  <style>
-    body {
-      background: #f6f7fb;
-      font-family: 'Segoe UI', sans-serif;
-      margin: 0;
-      padding: 0;
-    }
-    #contenido {
-      padding: 2rem;
-      margin-left: 200px;
-    }
-    th input {
-      width: 100%;
-      font-size: 0.9rem;
-    }
-    .btn {
-      margin: 5px 3px;
-    }
-    table img {
-      height: 40px;
-      cursor: pointer;
-    }
-    .btn-primary {
-      background-color: #1f6feb;
-    }
-    .btn-danger {
-      background-color: #d73a49;
-    }
-    #menuLateral {
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 180px;
-      height: 100vh;
-      background: #fff;
-      padding: 10px;
-      box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-    }
-    #menuLateral button {
-      display: block;
-      margin-bottom: 10px;
-      width: 100%;
-      background: #e7eaf0;
-      border: none;
-      padding: 10px;
-      text-align: left;
-      border-radius: 5px;
-      font-weight: bold;
-    }
-    #menuLateral button:hover {
-      background-color: #d0d7de;
-    }
-    #loginOverlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0,0,0,0.7);
-      z-index: 9999;
-      display: none;
-      justify-content: center;
-      align-items: center;
-    }
-  </style>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
-  <div id="loginOverlay">
-    <div class="bg-white p-4 rounded shadow" id="loginBox"></div>
-  </div>
-
   <div id="menuLateral">
     <button onclick="mostrarVista('inventario')">Inventario</button>
     <button onclick="mostrarVista('ventas')">Ventas</button>
     <button onclick="mostrarVista('estadisticas')">Estadísticas</button>
   </div>
-  <div id="contenido" class="container"></div>
+  <div id="contenido" class="container mt-4"></div>
+
+  <div id="loginOverlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background-color:rgba(0,0,0,0.7);z-index:9999;display:flex;justify-content:center;align-items:center;">
+    <div class="bg-white p-4 rounded shadow" id="loginBox"></div>
+  </div>
 
   <script>
     const usuarioAutorizado = "gilmar.lagosc@gmail.com";
@@ -90,60 +24,33 @@
     function parseJwt(token) {
       const base64Url = token.split('.')[1];
       const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const jsonPayload = decodeURIComponent(
-        atob(base64)
-          .split('')
-          .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-          .join('')
-      );
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(c =>
+        '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+      ).join(''));
       return JSON.parse(jsonPayload);
     }
 
     function handleCredentialResponse(response) {
       const data = parseJwt(response.credential);
       if (data.email === usuarioAutorizado) {
-        localStorage.setItem("usuarioAutenticado", "true");
         document.getElementById("loginOverlay").style.display = "none";
-        if (typeof inicializarAplicacion === 'function') {
-          inicializarAplicacion();
-        }
+        localStorage.setItem("usuarioAutenticado", "true");
+        if (typeof inicializarAplicacion === "function") inicializarAplicacion();
       } else {
         alert("Usuario no autorizado");
       }
     }
 
-    function mostrarVista(vista) {
-      const contenido = document.getElementById("contenido");
-      if (vista === 'inventario') {
-        if (typeof cargarVistaInventario === 'function') cargarVistaInventario();
-      } else if (vista === 'ventas') {
-        if (typeof cargarVistaVentas === 'function') cargarVistaVentas();
-      } else if (vista === 'estadisticas') {
-        contenido.innerHTML = `
-          <h3>Estadísticas</h3>
-          <p>Total de productos registrados: <span id="totalProductos"></span></p>
-          <p>Total vendido: <span id="totalVendido"></span></p>
-          <p>Total disponible: <span id="totalDisponible"></span></p>
-        `;
-        if (typeof actualizarEstadisticas === 'function') actualizarEstadisticas();
-      }
-    }
-
     window.onload = () => {
-      const estaAutenticado = localStorage.getItem("usuarioAutenticado") === "true";
-      if (estaAutenticado) {
+      if (localStorage.getItem("usuarioAutenticado") === "true") {
         document.getElementById("loginOverlay").style.display = "none";
-        if (typeof inicializarAplicacion === 'function') {
-          inicializarAplicacion();
-        }
+        if (typeof inicializarAplicacion === "function") inicializarAplicacion();
         return;
-      } else {
-        document.getElementById("loginOverlay").style.display = "flex";
       }
 
       google.accounts.id.initialize({
         client_id: "44635824268-o6n0gvu9smp2tlsuk23b8n17660r32gj.apps.googleusercontent.com",
-        callback: handleCredentialResponse,
+        callback: handleCredentialResponse
       });
 
       google.accounts.id.renderButton(
@@ -154,7 +61,6 @@
       google.accounts.id.prompt();
     };
   </script>
-
   <script src="client.js"></script>
 </body>
 </html>
