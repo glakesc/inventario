@@ -191,4 +191,14 @@ function actualizarEstadisticas() {
   const stats = document.createElement("p");
   stats.innerHTML = `Total en ventas (COP): <strong>$${dinero.toLocaleString()}</strong>`;
   document.getElementById("contenido").appendChild(stats);
+
+  function mostrarVista(vista) {
+  if (vista === "inventario") {
+    cargarVistaInventario();
+  } else if (vista === "ventas") {
+    cargarVistaVentas();
+  } else if (vista === "estadisticas") {
+    actualizarEstadisticas();
+  }
+}
 }
