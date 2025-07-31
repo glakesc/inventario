@@ -1,5 +1,3 @@
-/ client.js
-
 let productos = JSON.parse(localStorage.getItem("productos")) || [];
 let ventas = JSON.parse(localStorage.getItem("ventas")) || [];
 
@@ -12,12 +10,17 @@ function inicializarAplicacion() {
   mostrarVista("inventario");
 }
 
+function mostrarVista(vista) {
+  if (vista === "inventario") cargarVistaInventario();
+  if (vista === "ventas") cargarVistaVentas();
+  if (vista === "estadisticas") actualizarEstadisticas();
+}
 function cargarVistaInventario() {
   const cont = document.getElementById("contenido");
   cont.innerHTML = `
     <h3>Gestión de Inventario</h3>
     <div class="row mb-3">
-      <div class="col"><input id="nombre" class="form-control" placeholder="Nombre"></div>
+      <div class="col"><input id="nombre" class="form-control" placeholder="Referencia"></div>
       <div class="col"><input id="cantidad" class="form-control" placeholder="Cantidad" type="number"></div>
       <div class="col"><input id="ubicacion" class="form-control" placeholder="Ubicación"></div>
       <div class="col"><input id="precio" class="form-control" placeholder="Precio (COP)" type="number"></div>
@@ -31,10 +34,10 @@ function cargarVistaInventario() {
     <table class="table table-bordered table-striped">
       <thead class="table-light">
         <tr>
-          <th>Referencia <input oninput="filtrarTabla(this, 0)"></th>
-          <th>Cantidad <input oninput="filtrarTabla(this, 1)"></th>
-          <th>Ubicación <input oninput="filtrarTabla(this, 2)"></th>
-          <th>Precio (COP) <input oninput="filtrarTabla(this, 3)"></th>
+          <th>Referencia</th>
+          <th>Cantidad</th>
+          <th>Ubicación</th>
+          <th>Precio (COP)</th>
           <th>Imagen</th>
           <th>Acciones</th>
         </tr>
@@ -87,7 +90,7 @@ function renderInventario() {
         <td>${p.nombre}</td>
         <td>${p.cantidad}</td>
         <td>${p.ubicacion}</td>
-        <td>$ ${p.precio.toLocaleString()}</td>
+        <td>$ ${p.precio?.toLocaleString()}</td>
         <td>${p.imagen ? `<img src="${p.imagen}" onclick="verImagen('${p.imagen}')" style="height: 120px">` : ""}</td>
         <td><button class="btn btn-danger btn-sm" onclick="eliminarProducto('${p.nombre}')">Eliminar</button></td>
       </tr>
@@ -95,38 +98,12 @@ function renderInventario() {
   }
   document.getElementById("totalInventario").innerText = total;
 }
-
-function filtrarTabla(input, colIndex) {
-  const filtro = input.value.toLowerCase();
-  const filas = document.querySelectorAll("#tablaInventario tr");
-  filas.forEach(f => {
-    const celdas = f.getElementsByTagName("td");
-    f.style.display = celdas[colIndex].innerText.toLowerCase().includes(filtro) ? "" : "none";
-  });
-}
-
-function verImagen(src) {
-  const w = window.open();
-  w.document.write(`<img src="${src}" style="width:100%">`);
-}
-
-function exportarCSV() {
-  const filas = productos.map(p => [p.nombre, p.cantidad, p.ubicacion, p.precio]);
-  const csv = ["Referencia,Cantidad,Ubicacion,Precio"].concat(filas.map(f => f.join(","))).join("\n");
-  const blob = new Blob([csv], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "inventario.csv";
-  a.click();
-}
-
 function cargarVistaVentas() {
   const cont = document.getElementById("contenido");
   cont.innerHTML = `
     <h3>Registro de Ventas</h3>
     <div class="row mb-3">
-      <div class="col"><input id="productoV" class="form-control" placeholder="Nombre producto"></div>
+      <div class="col"><input id="productoV" class="form-control" placeholder="Referencia producto"></div>
       <div class="col"><input id="nombreClienteV" class="form-control" placeholder="Nombre cliente"></div>
       <div class="col"><input id="apellidoClienteV" class="form-control" placeholder="Apellido cliente"></div>
       <div class="col"><input id="direccionClienteV" class="form-control" placeholder="Dirección"></div>
@@ -136,7 +113,15 @@ function cargarVistaVentas() {
     </div>
     <table class="table table-bordered">
       <thead class="table-light">
-        <tr><th>Producto</th><th>Nombre</th><th>Apellido</th><th>Dirección</th><th>Cantidad</th><th>Vendedor</th><th>Fecha</th></tr>
+        <tr>
+          <th>Producto</th>
+          <th>Nombre</th>
+          <th>Apellido</th>
+          <th>Dirección</th>
+          <th>Cantidad</th>
+          <th>Vendedor</th>
+          <th>Fecha</th>
+        </tr>
       </thead>
       <tbody id="tablaVentas"></tbody>
     </table>
@@ -153,12 +138,14 @@ function registrarVenta() {
   const vendedor = document.getElementById("vendedorV").value;
   const fecha = new Date().toLocaleDateString();
 
-  if (!producto || !nombre || !apellido || !direccion || isNaN(cantidad) || !vendedor) return alert("Datos incompletos");
+  if (!producto || !nombre || !apellido || !direccion || isNaN(cantidad) || !vendedor)
+    return alert("Datos incompletos");
 
   const idx = productos.findIndex(p => p.nombre === producto);
   if (idx === -1 || productos[idx].cantidad < cantidad) {
     return alert("Producto no existe o cantidad insuficiente");
   }
+
   productos[idx].cantidad -= cantidad;
   ventas.push({ producto, nombre, apellido, direccion, cantidad, vendedor, fecha });
   guardarDatos();
@@ -171,34 +158,47 @@ function renderVentas() {
   if (!tabla) return;
   tabla.innerHTML = "";
   for (let v of ventas) {
-    tabla.innerHTML += `<tr><td>${v.producto}</td><td>${v.nombre}</td><td>${v.apellido}</td><td>${v.direccion}</td><td>${v.cantidad}</td><td>${v.vendedor}</td><td>${v.fecha}</td></tr>`;
+    tabla.innerHTML += `
+      <tr>
+        <td>${v.producto}</td>
+        <td>${v.nombre}</td>
+        <td>${v.apellido}</td>
+        <td>${v.direccion}</td>
+        <td>${v.cantidad}</td>
+        <td>${v.vendedor}</td>
+        <td>${v.fecha}</td>
+      </tr>`;
   }
 }
-
 function actualizarEstadisticas() {
-  let total = productos.reduce((acc, p) => acc + p.cantidad, 0);
-  let vendidos = ventas.reduce((acc, v) => acc + v.cantidad, 0);
-  let registrados = total + vendidos;
-  let dinero = ventas.reduce((acc, v) => {
-    let prod = productos.find(p => p.nombre === v.producto);
+  const cont = document.getElementById("contenido");
+  const vendidos = ventas.reduce((acc, v) => acc + v.cantidad, 0);
+  const dinero = ventas.reduce((acc, v) => {
+    const prod = productos.find(p => p.nombre === v.producto);
     return acc + ((prod?.precio || 0) * v.cantidad);
   }, 0);
 
-  document.getElementById("totalProductos").innerText = registrados;
-  document.getElementById("totalVendido").innerText = vendidos;
-  document.getElementById("totalDisponible").innerText = total;
-
-  const stats = document.createElement("p");
-  stats.innerHTML = `Total en ventas (COP): <strong>$${dinero.toLocaleString()}</strong>`;
-  document.getElementById("contenido").appendChild(stats);
-
-  function mostrarVista(vista) {
-  if (vista === "inventario") {
-    cargarVistaInventario();
-  } else if (vista === "ventas") {
-    cargarVistaVentas();
-  } else if (vista === "estadisticas") {
-    actualizarEstadisticas();
-  }
+  cont.innerHTML = `
+    <h3>Estadísticas</h3>
+    <ul class="list-group">
+      <li class="list-group-item">Total vendido: <strong>${vendidos}</strong> unidades</li>
+      <li class="list-group-item">Total en ventas: <strong>$${dinero.toLocaleString()}</strong> COP</li>
+    </ul>
+  `;
 }
+
+function exportarCSV() {
+  const filas = productos.map(p => [p.nombre, p.cantidad, p.ubicacion, p.precio]);
+  const csv = ["Referencia,Cantidad,Ubicacion,Precio"].concat(filas.map(f => f.join(","))).join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "inventario.csv";
+  a.click();
+}
+
+function verImagen(src) {
+  const w = window.open();
+  w.document.write(`<img src="${src}" style="width:100%">`);
 }
