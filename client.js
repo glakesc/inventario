@@ -15,6 +15,7 @@ function mostrarVista(vista) {
   if (vista === "ventas") cargarVistaVentas();
   if (vista === "estadisticas") actualizarEstadisticas();
 }
+
 function cargarVistaInventario() {
   const cont = document.getElementById("contenido");
   cont.innerHTML = `
@@ -35,7 +36,7 @@ function cargarVistaInventario() {
       <thead class="table-light">
         <tr>
           <th>Referencia</th>
-          <th>Cantidad</th>
+          <th>Stock disponible</th>
           <th>Ubicación</th>
           <th>Precio (COP)</th>
           <th>Imagen</th>
@@ -72,7 +73,6 @@ function agregarProducto() {
   if (imagenInput.files.length > 0) reader.readAsDataURL(imagenInput.files[0]);
   else reader.onload();
 }
-
 function eliminarProducto(nombre) {
   productos = productos.filter(p => p.nombre !== nombre);
   guardarDatos();
@@ -85,8 +85,12 @@ function renderInventario() {
   let total = 0;
   for (let p of productos) {
     total += p.cantidad;
+    let colorClase = "";
+    if (p.cantidad <= 2) colorClase = "table-danger";
+    else if (p.cantidad <= 5) colorClase = "table-warning";
+
     tabla.innerHTML += `
-      <tr>
+      <tr class="${colorClase}">
         <td>${p.nombre}</td>
         <td>${p.cantidad}</td>
         <td>${p.ubicacion}</td>
@@ -97,6 +101,22 @@ function renderInventario() {
     `;
   }
   document.getElementById("totalInventario").innerText = total;
+}
+
+function verImagen(src) {
+  const w = window.open();
+  w.document.write(`<img src="${src}" style="width:100%">`);
+}
+
+function exportarCSV() {
+  const filas = productos.map(p => [p.nombre, p.cantidad, p.ubicacion, p.precio]);
+  const csv = ["Referencia,Cantidad,Ubicacion,Precio"].concat(filas.map(f => f.join(","))).join("\\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "inventario.csv";
+  a.click();
 }
 function cargarVistaVentas() {
   const cont = document.getElementById("contenido");
@@ -121,6 +141,7 @@ function cargarVistaVentas() {
           <th>Cantidad</th>
           <th>Vendedor</th>
           <th>Fecha</th>
+          <th>Acciones</th>
         </tr>
       </thead>
       <tbody id="tablaVentas"></tbody>
@@ -151,13 +172,21 @@ function registrarVenta() {
   guardarDatos();
   renderInventario();
   renderVentas();
+
+  // Limpiar campos
+  document.getElementById("productoV").value = "";
+  document.getElementById("nombreClienteV").value = "";
+  document.getElementById("apellidoClienteV").value = "";
+  document.getElementById("direccionClienteV").value = "";
+  document.getElementById("cantidadV").value = "";
+  document.getElementById("vendedorV").value = "";
 }
 
 function renderVentas() {
   const tabla = document.getElementById("tablaVentas");
   if (!tabla) return;
   tabla.innerHTML = "";
-  for (let v of ventas) {
+  ventas.forEach((v, i) => {
     tabla.innerHTML += `
       <tr>
         <td>${v.producto}</td>
@@ -167,7 +196,18 @@ function renderVentas() {
         <td>${v.cantidad}</td>
         <td>${v.vendedor}</td>
         <td>${v.fecha}</td>
+        <td><button class="btn btn-danger btn-sm" onclick="eliminarVenta(${i})">Eliminar</button></td>
       </tr>`;
+  });
+}
+
+function eliminarVenta(index) {
+  if (confirm("¿Estás seguro de eliminar esta venta?")) {
+    ventas.splice(index, 1);
+    guardarDatos();
+    renderVentas();
+    renderInventario();
+    actualizarEstadisticas();
   }
 }
 function actualizarEstadisticas() {
@@ -185,20 +225,4 @@ function actualizarEstadisticas() {
       <li class="list-group-item">Total en ventas: <strong>$${dinero.toLocaleString()}</strong> COP</li>
     </ul>
   `;
-}
-
-function exportarCSV() {
-  const filas = productos.map(p => [p.nombre, p.cantidad, p.ubicacion, p.precio]);
-  const csv = ["Referencia,Cantidad,Ubicacion,Precio"].concat(filas.map(f => f.join(","))).join("\n");
-  const blob = new Blob([csv], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "inventario.csv";
-  a.click();
-}
-
-function verImagen(src) {
-  const w = window.open();
-  w.document.write(`<img src="${src}" style="width:100%">`);
 }
